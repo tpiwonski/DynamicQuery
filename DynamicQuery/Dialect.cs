@@ -22,20 +22,17 @@ namespace DynamicQuery
 		}
 
 		public Dialect() {
-			_clause.in_ = ((Func<Dialect, string[], string>)((dialect, arguments) => 
-				string.Format("IN ({0})", dialect.Join(arguments))));
-			
+			_clause.in_ = CreateFormatter ("IN ({0})");			
 			_clause.between = ((Func<Dialect, string[], string>)((dialect, arguments) => 
 				string.Format("BETWEEN {0} AND {1}", arguments[0], arguments[1])));
+			_clause.orderby = CreateFormatter ("ORDER BY {0}");
+			_clause.leftjoin = CreateFormatter ("LEFT JOIN {0}");
+			_clause.values = CreateFormatter ("VALUES ({0})");
+		}
 
-			_clause.orderby = ((Func<Dialect, string[], string>)((dialect, arguments) => 
-				string.Format("ORDER BY {0}", dialect.Join(arguments))));
-
-			_clause.leftjoin = ((Func<Dialect, string[], string>)((dialect, arguments) => 
-				string.Format("LEFT JOIN {0}", dialect.Join(arguments))));
-
-			_clause.values = ((Func<Dialect, string[], string>)((dialect, arguments) => 
-				string.Format("VALUES ({0})", dialect.Join(arguments))));
+		public static Func<Dialect, string[], string> CreateFormatter(string format) {
+			return ((Func<Dialect, string[], string>)((dialect, arguments) => 
+				string.Format(format, dialect.Join(arguments))));
 		}
 
 		public Statement CompileClause(Clause clause) {

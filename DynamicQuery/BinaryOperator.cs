@@ -12,9 +12,15 @@ namespace DynamicQuery {
 			{ ExpressionType.Equal, "=" },	
 			{ ExpressionType.NotEqual, "<>" },
 			{ ExpressionType.GreaterThan, ">" },
+			{ ExpressionType.GreaterThanOrEqual, ">=" },
 			{ ExpressionType.LessThan, "<" },
+			{ ExpressionType.LessThanOrEqual, "<=" },
 			{ ExpressionType.And, "and" },
-			{ ExpressionType.Or, "or" }
+			{ ExpressionType.Or, "or" },
+			{ ExpressionType.Add, "+" },
+			{ ExpressionType.Subtract, "-" },
+			{ ExpressionType.Multiply, "*" },
+			{ ExpressionType.Divide, "/" }
 		};
 
         private string _name;
