@@ -9,52 +9,75 @@ namespace DynamicQuery.Test
 	[TestFixture ()]
 	public class Test
 	{
-		private DynamicQuery _dynamicQuery;
-		private Dialect _dialect;
+		private dynamic dynamicQuery;
+		private Dialect dialect;
 
 		[TestFixtureSetUp]
 		public void SetUp() {
-			_dynamicQuery = new DynamicQuery();
-			_dialect = new Dialect();
+			dynamicQuery = new DynamicQuery();
+			dialect = new Dialect();
 		}
 		
 		[Test ()]
 		public void TestSelect ()
-		{			
-			dynamic dq = _dynamicQuery;
+		{
+			Clause clause = dynamicQuery.
+				Select(dynamicQuery.Table.users.id, dynamicQuery.Table.users.name, dynamicQuery.Table.users.dateOfBirth).
+				From(dynamicQuery.Table.users).
+				Where(dynamicQuery.Table.users.name.like(Parameter.Bind("name"))).
+				OrderBy(dynamicQuery.Table.users.id.desc);
 
-			dynamic stmt = dq.
-				Select(dq.Table.users.name, dq.Function.ToLower(dq.Table.users.age, 100, "ala ma kota")).
-				From(dq.Table.users).
-				Join(dq.Table.employees).
-				On(dq.Table.employees.userid == dq.Table.users.id).
-				LeftJoin(dq.Table.users.Alias("alias1")).
-				On(dq.Table.alias1.foo == dq.Table.users.boo).
-				Where((dq.Table.employees.salary != Parameter.Bind("param1"))
-			                    & !(dq.Table.employees.years == 10)
-					| (dq.Table.employees.foo.between(Parameter.Bind("minValue"), Parameter.Bind("maxValue")))
-					& (dq.Table.employees.boo.in_("1", 2, 3, 4)) & dq.Table.xxx.yyy.regexp("^[A-Z]+$")).
-				OrderBy(dq.Table.users.name.desc, dq.Table.users.age.asc);
+			Statement statement = clause.Compile(dialect);
 
-			Statement statement = stmt.Compile(_dialect);
+			Assert.AreEqual("SELECT users.id, users.name, users.dateofbirth FROM users WHERE users.name LIKE @name ORDER BY users.id DESC",
+				statement.Sql);
+			Assert.AreEqual(1, statement.Parameters.Length);
+			Assert.AreSame("name", statement.Parameters [0]);
+		}
 
-			Console.WriteLine(statement.Sql);
+		[Test]
+		public void TestJoins() {
+			Clause clause = dynamicQuery.
+				Select(dynamicQuery.Table.a.c1.As("foo"), dynamicQuery.Table.b.c1.As("boo"), dynamicQuery.Table.c.c1).
+				From(dynamicQuery.Table.a).
+				Join(dynamicQuery.Table.b).On(dynamicQuery.Table.b.id == dynamicQuery.Table.a.id).
+				LeftJoin(dynamicQuery.Table.c).On(dynamicQuery.Table.c.id == dynamicQuery.Table.b.id);
+
+			Statement statement = clause.Compile(dialect);
+			Assert.AreEqual("SELECT a.c1 AS 'foo', b.c1 AS 'boo', c.c1 FROM a JOIN b ON (b.id = a.id) LEFT JOIN c ON (c.id = b.id)", 
+				statement.Sql);
+		}
+
+		[Test]
+		public void TestPredicate() {
+			Clause clause = dynamicQuery.
+				Where(dynamicQuery.Table.a.c1 != Parameter.Bind("param1")
+	                & (!(dynamicQuery.Table.a.c2 == 10)
+						| dynamicQuery.Table.a.c3.between(Parameter.Bind("minValue"), Parameter.Bind("maxValue")))
+	                & dynamicQuery.Table.a.c4.in_("1", 2, 3, 4)
+	                & dynamicQuery.Table.a.c5.regexp("^[A-Z]+$"));
+
+			Statement statement = clause.Compile(dialect);
+
+			Assert.AreEqual("WHERE ((((a.c1 <> @param1) AND ((NOT (a.c2 = 10)) OR a.c3 BETWEEN @minValue AND @maxValue)) AND a.c4 IN ('1', 2, 3, 4)) AND a.c5 REGEXP '^[A-Z]+$')",
+				statement.Sql);
+			Assert.AreEqual(3, statement.Parameters.Length);
+			Assert.AreEqual(new string[] { "param1", "minValue", "maxValue" }, statement.Parameters);
 		}
 
 		[Test]
 		public void TestInsert() {
-			dynamic dq = _dynamicQuery;
 
 			var values = new Dictionary<Column, object> {
-				{ dq.Table.users.name, "tomek" },
-				{ dq.Table.users.age, Parameter.Bind("age") }
+				{ dynamicQuery.Table.users.name, "tomek" },
+				{ dynamicQuery.Table.users.age, Parameter.Bind("age") }
 			};
 
-			Clause clause = dq.
-				Insert(dq.Table.users).
+			Clause clause = dynamicQuery.
+				Insert(dynamicQuery.Table.users).
 				Values(values);
 			
-			Statement statement = clause.Compile(_dialect);
+			Statement statement = clause.Compile(dialect);
 
 			Assert.AreEqual ("INSERT INTO users (users.name, users.age) VALUES ('tomek', @age)", 
 				statement.Sql);
@@ -64,20 +87,19 @@ namespace DynamicQuery.Test
 
 		[Test]
 		public void TestUpdate() {
-			dynamic dq = _dynamicQuery;
 
 			var values = new Dictionary<Column, object> {
-				{ dq.Table.users.name, "jola" },
-				{ dq.Table.users.age, dq.Table.users.age + 1 },
-				{ dq.Table.users.city, Parameter.Bind("city") }
+				{ dynamicQuery.Table.users.name, "jola" },
+				{ dynamicQuery.Table.users.age, dynamicQuery.Table.users.age + 1 },
+				{ dynamicQuery.Table.users.city, Parameter.Bind("city") }
 			};
 
-			Clause clause = dq.
-				Update(dq.Table.users).
+			Clause clause = dynamicQuery.
+				Update(dynamicQuery.Table.users).
 				Set(values).
-				Where(dq.Table.users.id == 123);
+				Where(dynamicQuery.Table.users.id == 123);
 			
-			Statement statement = clause.Compile(_dialect);
+			Statement statement = clause.Compile(dialect);
 
 			string expectedSql = "UPDATE users SET users.name = 'jola', users.age = (users.age + 1), users.city = @city WHERE (users.id = 123)";
 			Assert.AreEqual (expectedSql, statement.Sql);
@@ -87,13 +109,12 @@ namespace DynamicQuery.Test
 
 		[Test]
 		public void TestDelete() {
-			dynamic dq = _dynamicQuery;
 
-			Clause clause = dq.
-				Delete(dq.Table.users).
-				Where(dq.Table.users.name == "tomek" & dq.Table.users.age < Parameter.Bind("age"));
+			Clause clause = dynamicQuery.
+				Delete(dynamicQuery.Table.users).
+				Where(dynamicQuery.Table.users.name == "tomek" & dynamicQuery.Table.users.age < Parameter.Bind("age"));
 			
-			Statement statement = clause.Compile(_dialect);
+			Statement statement = clause.Compile(dialect);
 
 			string expectedSql = "DELETE FROM users WHERE ((users.name = 'tomek') AND (users.age < @age))";
 			Assert.AreEqual (expectedSql, statement.Sql);

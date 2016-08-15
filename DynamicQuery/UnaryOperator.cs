@@ -40,6 +40,16 @@ namespace DynamicQuery {
             _arg = arg;
         }
 
+		public override bool TryBinaryOperation(BinaryOperationBinder binder, object arg, out object result) {            
+			result = BinaryOperator.Create (this, binder.Operation, arg);
+			return true;
+		}
+
+		public override bool TryUnaryOperation(UnaryOperationBinder binder, out object result) {
+			result = UnaryOperator.Create (binder.Operation, this);
+			return true;
+		}
+
 		public Statement Compile(Dialect dialect) {
 			return dialect.CompileUnaryPredicate(this);
 		}
