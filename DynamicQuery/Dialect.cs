@@ -101,7 +101,7 @@ namespace DynamicQuery
 				parent = clause.Parent.Compile(this);
 			}
 
-			dynamic[] values = clause.Values.Select(kv => new {
+			var values = clause.Values.Select(kv => new {
 				Column=CompileColumn(kv.Key),
 				Value=Compile(kv.Value)
 			}).ToArray();
