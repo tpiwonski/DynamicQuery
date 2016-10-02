@@ -7,7 +7,6 @@ using System.Reflection;
 
 namespace DynamicQuery
 {
-
 	public class Parameter {
 
 		private string _name;
